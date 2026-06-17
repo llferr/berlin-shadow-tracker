@@ -12,6 +12,10 @@ const shadow = new ShadowLayer();
 // requestAnimationFrame can pump map._render() to drive style loading. Harmless in production.
 (window as unknown as { __map: unknown }).__map = map;
 
+// Search doesn't depend on map style — wire it up immediately so typing works even if the
+// map tiles are slow or blocked.
+initSearch(map);
+
 let initialized = false;
 let tileManager: TileManager | undefined;
 let mapMode: MapMode | undefined;
@@ -53,7 +57,6 @@ const init = () => {
     tileManager?.setLeafOn(month >= 4 && month <= 9);
     sunControl.update(sun, date);
   });
-  initSearch(map);
   map.triggerRepaint();
   (window as unknown as { __shadow: unknown; __tiles: unknown }).__shadow = shadow;
   (window as unknown as { __shadow: unknown; __tiles: unknown }).__tiles = tileManager;
@@ -62,6 +65,14 @@ const init = () => {
 map.on('style.load', init);
 map.on('load', init);
 init();
+
+// Mobile panel toggle: tap the header to expand/collapse the bottom sheet.
+const panelToggle = document.getElementById('panel-toggle');
+const hud = document.getElementById('hud');
+panelToggle?.addEventListener('click', () => {
+  hud?.classList.toggle('collapsed');
+});
+
 
 // Some headless preview environments throttle requestAnimationFrame whenever the tab is
 // considered hidden, which prevents the map's dirty flags from clearing and stalls

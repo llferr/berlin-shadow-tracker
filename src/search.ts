@@ -78,7 +78,7 @@ export function initSearch(map: maplibregl.Map) {
   let marker: maplibregl.Marker | undefined;
 
   const hide = () => {
-    list.hidden = true;
+    list.classList.remove('open');
     activeIndex = -1;
   };
 
@@ -106,7 +106,7 @@ export function initSearch(map: maplibregl.Map) {
       });
       list.appendChild(li);
     });
-    list.hidden = false;
+    list.classList.add('open');
     activeIndex = -1;
   };
 
@@ -155,7 +155,7 @@ export function initSearch(map: maplibregl.Map) {
   input.addEventListener('input', onQuery);
 
   input.addEventListener('keydown', (e) => {
-    if (list.hidden) return;
+    if (!list.classList.contains('open')) return;
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       activeIndex = Math.min(activeIndex + 1, list.children.length - 1);
@@ -175,7 +175,7 @@ export function initSearch(map: maplibregl.Map) {
 
   input.addEventListener('blur', () => setTimeout(hide, 180));
   input.addEventListener('focus', () => {
-    if (lastResults.length > 0) list.hidden = false;
+    if (lastResults.length > 0) list.classList.add('open');
   });
 
   const updateActive = () => {

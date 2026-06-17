@@ -8,49 +8,53 @@
   </head>
   <body>
     <div id="map"></div>
-    <div id="hud">
+
+    <div id="search-bar">
+      <div class="search-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </div>
+      <input
+        id="search-input"
+        type="text"
+        placeholder="Search Berlin…"
+        autocomplete="off"
+        autocorrect="off"
+        spellcheck="false"
+      />
+      <ul id="search-results"></ul>
+    </div>
+
+    <div id="hud" class="collapsed">
       <div class="panel">
-        <header>
-          <strong>Berlin shadows</strong>
-          <span id="sun-readout" class="readout"></span>
+        <header id="panel-toggle">
+          <span class="chevron" aria-hidden="true">&#9660;</span>
         </header>
 
-        <div class="search">
-          <input
-            id="search-input"
-            type="search"
-            placeholder="Address or place in Berlin…"
-            autocomplete="off"
-            spellcheck="false"
-          />
-          <ul id="search-results" hidden></ul>
+        <div class="panel-body">
+          <label>
+            <span>Date</span>
+            <input id="date" type="date" />
+          </label>
+
+          <label>
+            <span>Day of year</span>
+            <input id="doy" type="range" min="1" max="365" step="1" />
+          </label>
+
+          <label>
+            <span>Time of day</span>
+            <input id="tod" type="range" min="0" max="1439" step="5" />
+            <output id="tod-readout"></output>
+          </label>
+
+          <div class="row">
+            <button id="winter" type="button">Dec 21 · noon</button>
+            <button id="summer" type="button">Jun 21 · noon</button>
+            <button id="now" type="button">Now</button>
+          </div>
+
+          <small id="sun-times" class="muted"></small>
         </div>
-
-        <div id="sun-control" class="sun-control"></div>
-
-        <label>
-          <span>Date</span>
-          <input id="date" type="date" />
-        </label>
-
-        <label>
-          <span>Day of year</span>
-          <input id="doy" type="range" min="1" max="365" step="1" />
-        </label>
-
-        <label>
-          <span>Time of day</span>
-          <input id="tod" type="range" min="0" max="1439" step="5" />
-          <output id="tod-readout"></output>
-        </label>
-
-        <div class="row">
-          <button id="winter" type="button">Dec 21 · noon</button>
-          <button id="summer" type="button">Jun 21 · noon</button>
-          <button id="now" type="button">Now</button>
-        </div>
-
-        <small id="sun-times" class="muted"></small>
       </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
