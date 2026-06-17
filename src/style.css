@@ -1,0 +1,357 @@
+:root {
+  color-scheme: dark;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* Palette */
+  --onyx: #121116;
+  --shadow-grey: #1D222A;
+  --twilight-indigo: #2F3A58;
+  --apricot-cream: #F3D3A2;
+  --honey-bronze: #E4B359;
+
+  --text: #ECE6DA;
+  --text-muted: #A5A39C;
+  --text-dim: #6E6B61;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--onyx);
+  color: var(--text);
+}
+
+#map {
+  position: absolute;
+  inset: 0;
+}
+
+#hud {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.panel {
+  pointer-events: auto;
+  background: rgba(18, 17, 22, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(47, 58, 88, 0.6);
+  border-radius: 10px;
+  padding: 14px 16px;
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(29, 34, 42, 0.5) inset;
+}
+
+.panel header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.panel header strong {
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+
+.readout {
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+label > span {
+  display: flex;
+  justify-content: space-between;
+}
+
+input[type="range"] {
+  width: 100%;
+  accent-color: var(--honey-bronze);
+}
+
+input[type="date"] {
+  background: rgba(29, 34, 42, 0.7);
+  border: 1px solid rgba(47, 58, 88, 0.7);
+  color: var(--text);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  color-scheme: dark;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+input[type="date"]:focus {
+  outline: none;
+  border-color: var(--honey-bronze);
+  background: rgba(47, 58, 88, 0.55);
+}
+
+output {
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--text);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.search {
+  position: relative;
+}
+
+#search-input {
+  width: 100%;
+  background: rgba(29, 34, 42, 0.7);
+  border: 1px solid rgba(47, 58, 88, 0.7);
+  color: var(--text);
+  padding: 8px 10px;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 13px;
+  box-sizing: border-box;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+#search-input::placeholder {
+  color: var(--text-dim);
+}
+
+#search-input:focus {
+  outline: none;
+  border-color: var(--honey-bronze);
+  background: rgba(47, 58, 88, 0.55);
+}
+
+/* Dropdown enters/exits with fade + subtle scale anchored to the input above. ease-out
+ * because it's a directional reveal that should settle as it lands. scale starts at 0.96
+ * (not 0) so the element pulls itself together rather than appearing from nothing. */
+#search-results {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  background: rgba(18, 17, 22, 0.98);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(47, 58, 88, 0.75);
+  border-radius: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+  z-index: 2;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+  transform-origin: top center;
+  transition: transform 180ms ease-out, opacity 180ms ease-out;
+}
+
+/* Override the [hidden] attribute's default display:none so transitions can play; we use
+ * opacity + pointer-events to actually disable interaction when closed. */
+#search-results[hidden] {
+  display: block;
+  opacity: 0;
+  transform: scale(0.96);
+  pointer-events: none;
+}
+
+#search-results li {
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--text);
+  cursor: pointer;
+  line-height: 1.35;
+  transition: background-color 120ms ease;
+}
+
+#search-results li:hover,
+#search-results li.active {
+  background: rgba(228, 179, 89, 0.18);
+}
+
+#search-results li .secondary {
+  display: block;
+  color: var(--text-dim);
+  font-size: 11px;
+}
+
+.sun-control {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0 2px;
+}
+
+.sun-svg {
+  display: block;
+  width: 160px;
+  height: 160px;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.sun-svg .dome {
+  fill: url(#dome-gradient);
+  stroke: rgba(47, 58, 88, 0.85);
+  stroke-width: 1;
+}
+
+.sun-svg .axis {
+  stroke: rgba(47, 58, 88, 0.55);
+  stroke-width: 1;
+  stroke-dasharray: 2 4;
+}
+
+.sun-svg .dir-label {
+  fill: var(--text-dim);
+  font-size: 11px;
+  font-family: ui-sans-serif, system-ui;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  pointer-events: none;
+  user-select: none;
+}
+
+.sun-svg .sun-path {
+  stroke: rgba(228, 179, 89, 0.45);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
+.sun-svg .sun-handle {
+  fill: var(--apricot-cream);
+  stroke: var(--onyx);
+  stroke-width: 2;
+  cursor: grab;
+  transition: r 120ms ease, filter 150ms ease;
+  filter: drop-shadow(0 0 6px rgba(243, 211, 162, 0.55));
+}
+
+.sun-svg .sun-handle:hover {
+  filter: drop-shadow(0 0 10px rgba(243, 211, 162, 0.85));
+}
+
+.sun-svg .sun-handle.dragging {
+  cursor: grabbing;
+  r: 9;
+}
+
+.sun-svg .sun-handle.below-horizon {
+  fill: #4b5563;
+  filter: none;
+}
+
+.row {
+  display: flex;
+  gap: 6px;
+}
+
+button {
+  flex: 1;
+  background: rgba(29, 34, 42, 0.7);
+  border: 1px solid rgba(47, 58, 88, 0.65);
+  color: var(--text);
+  padding: 6px 8px;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+button:hover {
+  background: rgba(47, 58, 88, 0.55);
+  border-color: rgba(228, 179, 89, 0.55);
+}
+
+button:active {
+  background: rgba(228, 179, 89, 0.2);
+  border-color: var(--honey-bronze);
+}
+
+.muted {
+  color: var(--text-dim);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.maplibregl-ctrl-attrib {
+  font-size: 10px;
+}
+
+/* N/E/S/W compass dial (bottom-right). Rotates with bearing; click resets north. */
+.compass-ctrl {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(18, 17, 22, 0.86);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(47, 58, 88, 0.7);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  position: relative;
+  pointer-events: auto;
+  transition: border-color 150ms ease, transform 150ms ease;
+}
+
+.compass-ctrl:hover {
+  border-color: rgba(228, 179, 89, 0.6);
+  transform: scale(1.05);
+}
+
+.compass-dial {
+  position: absolute;
+  inset: 0;
+  transition: transform 120ms ease-out;
+}
+
+.compass-dir {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  transform: translate(-50%, -50%);
+  user-select: none;
+}
+
+.compass-n { transform: translate(-50%, calc(-50% - 17px)); color: var(--honey-bronze); }
+.compass-s { transform: translate(-50%, calc(-50% + 17px)); }
+.compass-e { transform: translate(calc(-50% + 17px), -50%); }
+.compass-w { transform: translate(calc(-50% - 17px), -50%); }
+
+/* North needle — a small honey triangle pointing to N. */
+.compass-needle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 13px solid var(--honey-bronze);
+  transform: translate(-50%, -100%);
+  opacity: 0.9;
+}

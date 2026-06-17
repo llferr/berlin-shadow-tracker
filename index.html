@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Shadow Tracker — Berlin</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="map"></div>
+    <div id="hud">
+      <div class="panel">
+        <header>
+          <strong>Berlin shadows</strong>
+          <span id="sun-readout" class="readout"></span>
+        </header>
+
+        <div class="search">
+          <input
+            id="search-input"
+            type="search"
+            placeholder="Address or place in Berlin…"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <ul id="search-results" hidden></ul>
+        </div>
+
+        <div id="sun-control" class="sun-control"></div>
+
+        <label>
+          <span>Date</span>
+          <input id="date" type="date" />
+        </label>
+
+        <label>
+          <span>Day of year</span>
+          <input id="doy" type="range" min="1" max="365" step="1" />
+        </label>
+
+        <label>
+          <span>Time of day</span>
+          <input id="tod" type="range" min="0" max="1439" step="5" />
+          <output id="tod-readout"></output>
+        </label>
+
+        <div class="row">
+          <button id="winter" type="button">Dec 21 · noon</button>
+          <button id="summer" type="button">Jun 21 · noon</button>
+          <button id="now" type="button">Now</button>
+        </div>
+
+        <small id="sun-times" class="muted"></small>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,27 @@
+{
+  "name": "shadow-tracker",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "maplibre-gl": "^4.7.1",
+    "suncalc": "^1.9.0",
+    "three": "^0.170.0"
+  },
+  "devDependencies": {
+    "@types/earcut": "^3.0.0",
+    "@types/proj4": "^2.5.6",
+    "@types/suncalc": "^1.9.2",
+    "@types/three": "^0.170.0",
+    "earcut": "^3.0.2",
+    "proj4": "^2.20.8",
+    "tsx": "^4.22.3",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10"
+  }
+}
