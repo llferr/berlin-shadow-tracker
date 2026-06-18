@@ -56,6 +56,7 @@ export class TileManager {
     const [sx, sy] = this.shadow.projectToScene(lng, lat);
     this.shadow.setShadowCenter(sx, sy);
     this.shadow.setShadowHalfExtent(shadowExtentForZoom(zoom));
+    this.shadow.setShadowMapSize(shadowMapSizeForZoom(zoom));
     // Keep the compass a roughly constant on-screen size. MapLibre uses 512px tiles, so
     // metres-per-pixel = 78271.52·cos(lat)/2^zoom. ~140 px radius, clamped for sanity.
     const mpp = (78271.52 * Math.cos((lat * Math.PI) / 180)) / 2 ** zoom;
@@ -164,4 +165,11 @@ function shadowExtentForZoom(zoom: number): number {
   if (zoom >= 15) return 4000;
   if (zoom >= 14) return 6000;
   return 9000;
+}
+
+// Shadow-map resolution by zoom. At high zoom the frustum is tight (≤2.5 km half-extent), so an
+// 8192² map keeps building-on-building shadow edges crisp (~0.4–0.6 m/texel). Lower zooms span
+// many km where 4096² is plenty and the extra 256 MB of GPU depth texture isn't worth it.
+function shadowMapSizeForZoom(zoom: number): number {
+  return zoom >= 16 ? 8192 : 4096;
 }

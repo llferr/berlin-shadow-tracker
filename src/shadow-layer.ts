@@ -83,6 +83,19 @@ export class ShadowLayer implements CustomLayerInterface {
     this.map?.triggerRepaint();
   }
 
+  /** Set the shadow-map resolution (px per side). Three.js allocates the depth texture lazily
+   *  and caches it, so changing mapSize after the first shadow render is a no-op UNLESS we
+   *  dispose the existing target and null it — then it reallocates at the new size next frame.
+   *  Called per zoom (8192 high-zoom / 4096 low-zoom); early-out keeps drags from thrashing. */
+  setShadowMapSize(size: number) {
+    if (!this.sun) return;
+    if (this.sun.shadow.mapSize.width === size) return;
+    this.sun.shadow.mapSize.set(size, size);
+    this.sun.shadow.map?.dispose();
+    this.sun.shadow.map = null;
+    this.map?.triggerRepaint();
+  }
+
   add(obj: THREE.Object3D) {
     this.sceneRoot.add(obj);
   }
@@ -129,8 +142,9 @@ export class ShadowLayer implements CustomLayerInterface {
 
     this.sun = new THREE.DirectionalLight(0xfff4d6, 7);
     this.sun.castShadow = true;
-    // 4096² shadow map → sharper, more defined ground shadows (the frustum spans up to a few km
-    // at low zoom, so the extra resolution keeps edges crisp instead of mushy).
+    // Shadow map resolution is adaptive (see setShadowMapSize): 4096² is the low-zoom default
+    // and 8192² kicks in at high zoom where the frustum is tight and building-on-building
+    // shadow edges need to stay crisp. 4096 here is the safe starting allocation.
     this.sun.shadow.mapSize.set(4096, 4096);
     // Z-up scene: tell the shadow camera so it doesn't go singular when the sun is due
     // south/north (look-direction parallel to default Y-up → degenerate orientation → empty shadow map).
@@ -142,8 +156,12 @@ export class ShadowLayer implements CustomLayerInterface {
     this.sun.shadow.camera.bottom = -s;
     this.sun.shadow.camera.near = 1;
     this.sun.shadow.camera.far = 8000;
-    this.sun.shadow.bias = -0.0005;
-    this.sun.shadow.normalBias = 0.05;
+    // With buildings now receiving shadows (not just the ground), their own near-grazing lit
+    // faces would shimmer with self-shadow acne. A larger normalBias pushes the shadow lookup
+    // off the surface along its normal — enough to kill the acne on walls without the shadows
+    // visibly detaching from where buildings meet the ground.
+    this.sun.shadow.bias = -0.0004;
+    this.sun.shadow.normalBias = 1.2;
     this.sceneRoot.add(this.sun);
     this.sceneRoot.add(this.sun.target);
 

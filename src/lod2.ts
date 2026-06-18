@@ -42,10 +42,11 @@ export async function loadLod2Tile(url: string): Promise<THREE.Group> {
       flipNormalHorizontal(mesh.geometry);
       mesh.material = buildingMaterial;
       mesh.castShadow = true;
-      // Don't receive shadows on building surfaces — Shadowmap-style: cast shadows only
-      // appear on the ground plane, so building walls keep their natural lit/unlit shading
-      // and stay readable even when occluded by neighbouring buildings.
-      mesh.receiveShadow = false;
+      // Receive shadows on building surfaces too, so a tall building's shadow darkens the
+      // walls of its neighbours (not just the ground) — the realism that matters for judging
+      // which windows actually get sun. Acne on the lit faces is held off by the sun light's
+      // normalBias/bias tuning in shadow-layer.ts.
+      mesh.receiveShadow = true;
     }
   });
   return gltf.scene;
