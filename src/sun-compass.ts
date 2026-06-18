@@ -12,8 +12,7 @@ const LAT = 52.5163;
 const LNG = 13.3777;
 const RADIUS = 90; // metres — large enough to be readable at z16+, still fits a city block
 
-// Amber/golden accents pulled from the HUD control so the on-map dial reads as the same family.
-const RING_COLOR = 0xe5a048; // saturated amber — the fixed reference circle
+const RING_COLOR = 0x000000; // semi-transparent black reference circle (white cardinal letters on it)
 const TRAJECTORY_COLOR = 0xf6bc6e; // lighter amber — the day's sun path
 const SUN_COLOR = 0xffd84b; // golden — same as the control's sun icon
 
@@ -33,13 +32,7 @@ function makeLabel(text: string): THREE.Mesh {
   ctx.font = 'bold 84px ui-sans-serif, system-ui, -apple-system';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  // Dark outline keeps the letters crisp on the light day basemap; the bright golden fill keeps
-  // them legible on the dark night basemap.
-  ctx.lineJoin = 'round';
-  ctx.lineWidth = 12;
-  ctx.strokeStyle = 'rgba(38, 34, 26, 0.95)';
-  ctx.strokeText(text, 64, 70);
-  ctx.fillStyle = '#FFD84B';
+  ctx.fillStyle = '#ffffff';
   ctx.fillText(text, 64, 70);
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -79,7 +72,7 @@ export function createSunCompass(): SunCompass {
     new THREE.MeshBasicMaterial({
       color: RING_COLOR,
       transparent: true,
-      opacity: 1,
+      opacity: 0.6,
       side: THREE.DoubleSide,
       depthWrite: false,
       depthTest: false,
@@ -172,10 +165,10 @@ export function createSunCompass(): SunCompass {
   // Cardinal labels (N / E / S / W). Scene convention: +X=east, +Y=south, +Z=up.
   const labels: THREE.Mesh[] = [];
   const labelDefs: [string, number, number][] = [
-    ['N', 0, -RADIUS - 13],
-    ['E', RADIUS + 13, 0],
-    ['S', 0, RADIUS + 13],
-    ['W', -RADIUS - 13, 0],
+    ['N', 0, -RADIUS],
+    ['E', RADIUS, 0],
+    ['S', 0, RADIUS],
+    ['W', -RADIUS, 0],
   ];
   for (const [text, x, y] of labelDefs) {
     const lbl = makeLabel(text);
