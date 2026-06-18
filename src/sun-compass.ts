@@ -11,10 +11,10 @@ const LAT = 52.5163;
 const LNG = 13.3777;
 const RADIUS = 90; // metres — large enough to be readable at z16+, still fits a city block
 
-// Apricot Cream / Honey Bronze accents from the palette so the compass matches the HUD.
-const RING_COLOR = 0xF3D3A2;
-const TRAJECTORY_COLOR = 0xE4B359;
-const SUN_COLOR = 0xFFE08A;
+// Amber/golden accents pulled from the HUD control so the on-map dial reads as the same family.
+const RING_COLOR = 0xE5A048; // saturated amber — the fixed reference circle
+const TRAJECTORY_COLOR = 0xF6BC6E; // lighter amber — the day's sun path
+const SUN_COLOR = 0xFFD84B; // golden — same as the control's sun icon
 
 const NS = 'http://www.w3.org/2000/svg';
 void NS;
@@ -24,12 +24,16 @@ function makeLabelSprite(text: string): THREE.Sprite {
   canvas.width = 128;
   canvas.height = 128;
   const ctx = canvas.getContext('2d')!;
-  ctx.fillStyle = '#F3D3A2';
-  ctx.font = 'bold 68px ui-sans-serif, system-ui, -apple-system';
+  ctx.font = 'bold 80px ui-sans-serif, system-ui, -apple-system';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
-  ctx.shadowBlur = 6;
+  // Dark outline keeps the letters crisp on the light day basemap; the bright golden fill
+  // (matching the control's sun) keeps them legible on the dark night basemap.
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = 11;
+  ctx.strokeStyle = 'rgba(38, 34, 26, 0.92)';
+  ctx.strokeText(text, 64, 70);
+  ctx.fillStyle = '#FFD84B';
   ctx.fillText(text, 64, 70);
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -42,7 +46,7 @@ function makeLabelSprite(text: string): THREE.Sprite {
     depthTest: false,
   });
   const sprite = new THREE.Sprite(material);
-  sprite.scale.set(14, 14, 1);
+  sprite.scale.set(20, 20, 1);
   return sprite;
 }
 
@@ -62,11 +66,11 @@ export function createSunCompass(): SunCompass {
   // depthTest on so buildings closer to camera can occlude it (the ring lives on the
   // ground; tall buildings can pass in front of it).
   const ring = new THREE.Mesh(
-    new THREE.RingGeometry(RADIUS - 1.5, RADIUS + 1.5, 128, 1),
+    new THREE.RingGeometry(RADIUS - 2.5, RADIUS + 2.5, 128, 1),
     new THREE.MeshBasicMaterial({
       color: RING_COLOR,
       transparent: true,
-      opacity: 0.85,
+      opacity: 1,
       side: THREE.DoubleSide,
       depthWrite: false,
     }),
@@ -76,11 +80,11 @@ export function createSunCompass(): SunCompass {
 
   // Inner soft halo so the ring reads as part of an ellipse in perspective.
   const innerRing = new THREE.Mesh(
-    new THREE.RingGeometry(RADIUS - 4, RADIUS - 1.5, 128, 1),
+    new THREE.RingGeometry(RADIUS - 6, RADIUS - 2.5, 128, 1),
     new THREE.MeshBasicMaterial({
       color: RING_COLOR,
       transparent: true,
-      opacity: 0.18,
+      opacity: 0.4,
       side: THREE.DoubleSide,
       depthWrite: false,
     }),
@@ -95,7 +99,7 @@ export function createSunCompass(): SunCompass {
     new THREE.LineBasicMaterial({
       color: TRAJECTORY_COLOR,
       transparent: true,
-      opacity: 0.6,
+      opacity: 0.9,
       depthWrite: false,
     }),
   );
@@ -103,7 +107,7 @@ export function createSunCompass(): SunCompass {
 
   // Sun marker — small bright sphere, no shading (emissive look via MeshBasicMaterial).
   const sunMarker = new THREE.Mesh(
-    new THREE.SphereGeometry(3.5, 20, 14),
+    new THREE.SphereGeometry(7, 24, 16),
     new THREE.MeshBasicMaterial({ color: SUN_COLOR }),
   );
   group.add(sunMarker);
@@ -113,9 +117,9 @@ export function createSunCompass(): SunCompass {
   haloCanvas.width = haloCanvas.height = 128;
   const haloCtx = haloCanvas.getContext('2d')!;
   const grad = haloCtx.createRadialGradient(64, 64, 0, 64, 64, 64);
-  grad.addColorStop(0, 'rgba(255, 224, 138, 0.8)');
-  grad.addColorStop(0.4, 'rgba(255, 195, 89, 0.35)');
-  grad.addColorStop(1, 'rgba(255, 195, 89, 0)');
+  grad.addColorStop(0, 'rgba(255, 216, 75, 0.95)');
+  grad.addColorStop(0.4, 'rgba(245, 180, 60, 0.45)');
+  grad.addColorStop(1, 'rgba(245, 180, 60, 0)');
   haloCtx.fillStyle = grad;
   haloCtx.fillRect(0, 0, 128, 128);
   const haloTexture = new THREE.CanvasTexture(haloCanvas);
@@ -128,7 +132,7 @@ export function createSunCompass(): SunCompass {
       blending: THREE.AdditiveBlending,
     }),
   );
-  halo.scale.set(22, 22, 1);
+  halo.scale.set(34, 34, 1);
   group.add(halo);
 
   // Sun "ray" — a thin glowing line from the centre of the ring to the sun marker, so the
@@ -142,7 +146,7 @@ export function createSunCompass(): SunCompass {
     new THREE.LineBasicMaterial({
       color: SUN_COLOR,
       transparent: true,
-      opacity: 0.65,
+      opacity: 0.9,
       depthWrite: false,
     }),
   );
@@ -151,10 +155,10 @@ export function createSunCompass(): SunCompass {
   // Cardinal labels (N / E / S / W) — billboarded so they're always face-on regardless
   // of map bearing/pitch. Scene convention: +X=east, +Y=south, +Z=up.
   const labels: [string, number, number][] = [
-    ['N', 0, -RADIUS - 7],
-    ['E', RADIUS + 7, 0],
-    ['S', 0, RADIUS + 7],
-    ['W', -RADIUS - 7, 0],
+    ['N', 0, -RADIUS - 12],
+    ['E', RADIUS + 12, 0],
+    ['S', 0, RADIUS + 12],
+    ['W', -RADIUS - 12, 0],
   ];
   for (const [text, x, y] of labels) {
     const sprite = makeLabelSprite(text);
