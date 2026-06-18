@@ -39,7 +39,7 @@ function makeLabel(text: string): THREE.Mesh {
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   const mesh = new THREE.Mesh(
-    new THREE.PlaneGeometry(26, 26),
+    new THREE.PlaneGeometry(17, 17),
     new THREE.MeshBasicMaterial({
       map: texture,
       transparent: true,
@@ -157,17 +157,10 @@ export function createSunCompass(): SunCompass {
   ];
   for (const [text, x, y] of labelDefs) {
     const lbl = makeLabel(text);
-    lbl.position.set(x, y, 4);
+    lbl.position.set(x, y, 0.5); // lie flat on the dial, just above the ring
     labels.push(lbl);
     group.add(lbl);
   }
-
-  // Reused scratch objects for faceCamera (no per-frame allocation).
-  const _up = new THREE.Vector3();
-  const _fwd = new THREE.Vector3();
-  const _right = new THREE.Vector3();
-  const _basis = new THREE.Matrix4();
-  const _quat = new THREE.Quaternion();
 
   return {
     group,
@@ -180,17 +173,11 @@ export function createSunCompass(): SunCompass {
       group.scale.setScalar(meters / RADIUS);
     },
 
-    faceCamera(bearing: number, pitch: number) {
-      const cb = Math.cos(bearing);
-      const sb = Math.sin(bearing);
-      const cp = Math.cos(pitch);
-      const sp = Math.sin(pitch);
-      _up.set(sb * cp, -cb * cp, sp);
-      _fwd.set(-sb * sp, cb * sp, cp);
-      _right.crossVectors(_up, _fwd).normalize();
-      _basis.makeBasis(_right, _up, _fwd);
-      _quat.setFromRotationMatrix(_basis);
-      for (const l of labels) l.quaternion.copy(_quat);
+    faceCamera(bearing: number, _pitch: number) {
+      // Labels lie flat in the dial; spin them about Z so they stay upright on screen as the map
+      // rotates. (Pitch only foreshortens them, which is fine for a ground dial.)
+      const z = Math.PI - bearing;
+      for (const l of labels) l.rotation.set(0, 0, z);
     },
 
     update(sun: SunPosition, date: Date) {

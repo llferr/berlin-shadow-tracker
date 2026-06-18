@@ -115,6 +115,11 @@ function seasonTag(date: Date): { text: string; variant: string } {
   const doy = dateToDOY(date);
   if (Math.abs(doy - SUMMER_SOLSTICE_DOY) <= 2) return { text: 'Summer solstice', variant: 'summer' };
   if (Math.abs(doy - WINTER_SOLSTICE_DOY) <= 2) return { text: 'Winter solstice', variant: 'winter' };
+  // Season follows the knob's distance from the solstices (0 = summer, 1 = winter), so it stays
+  // consistent with the symmetric month-pair the date shows.
+  const w = winterness(doy);
+  if (w < 0.4) return { text: 'Summer', variant: 'summer' };
+  if (w > 0.6) return { text: 'Winter', variant: 'winter' };
   return { text: 'Mid-season', variant: 'mid' };
 }
 

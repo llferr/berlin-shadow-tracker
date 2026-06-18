@@ -18,7 +18,8 @@ initSearch(map);
 let initialized = false;
 let tileManager: TileManager | undefined;
 let mapMode: MapMode | undefined;
-let currentDate = new Date();
+// Default to the summer solstice (Jun 21), midday — the longest-day setting.
+let currentDate = new Date(new Date().getFullYear(), 5, 21, 12, 0, 0);
 
 const syncMapMode = (sunAltitude: number) => {
   const mode: MapMode = sunAltitude <= 0 ? 'night' : 'day';
