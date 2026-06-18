@@ -191,6 +191,14 @@ export class ShadowLayer implements CustomLayerInterface {
     const mapMatrix = new THREE.Matrix4().fromArray(matrix as unknown as number[]);
     this.camera.projectionMatrix.multiplyMatrices(mapMatrix, this.mercatorMatrix);
 
+    // The map canvas resizes after onAdd whenever the layout changes (it's a flex card now, not a
+    // full-screen element) or the window resizes — and MapLibre never re-runs the custom layer's
+    // onAdd. Three caches its viewport from creation, so re-sync it to the live drawing buffer
+    // each frame; otherwise the 3D scene renders at a stale scale/offset and the buildings drift
+    // off the basemap. setViewport (not setSize) avoids reallocating/clearing the shared canvas.
+    const canvas = this.map.getCanvas();
+    this.renderer.setViewport(0, 0, canvas.width, canvas.height);
+
     this.renderer.resetState();
     this.renderer.render(this.scene, this.camera);
   }
