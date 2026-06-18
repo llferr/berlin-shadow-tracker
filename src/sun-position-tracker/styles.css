@@ -1,0 +1,119 @@
+/* Sun Position Tracker — matches Figma nodes 159:3 (summer) / 159:39 (winter) */
+
+.sun-tracker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 0 2px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.sun-tracker-svg {
+  display: block;
+  width: 240px;
+  height: auto;
+  overflow: visible;
+  touch-action: none;
+}
+
+/* Filled arc grows sunrise → now; ease-out matches motion settling into place. */
+.arc-fill {
+  transition: d 0.25s ease-out;
+}
+.sun-tracker.is-dragging .arc-fill {
+  transition: none;
+}
+
+/* ── Knobs (date-range endpoints) ── */
+.knob {
+  cursor: grab;
+  outline: none;
+}
+.knob-hole {
+  fill: #f2f2ee; /* panel bg → reads as a cutout punched into the arc's end cap */
+  transition: r 0.12s ease;
+}
+.knob:hover .knob-hole {
+  r: 4;
+}
+.knob:focus-visible .knob-hole {
+  r: 4;
+  stroke: #c6c8da;
+  stroke-width: 1.5;
+}
+.knob.dragging {
+  cursor: grabbing;
+}
+.knob.dragging .knob-hole {
+  r: 4;
+}
+
+/* ── Sun handle ── */
+.sun-handle {
+  cursor: grab;
+  outline: none;
+}
+.sun-disc {
+  fill: #4c4738;
+  transition: filter 0.15s ease;
+}
+.sun-handle:hover .sun-disc,
+.sun-handle:focus-visible .sun-disc {
+  filter: drop-shadow(0 0 7px rgba(244, 201, 91, 0.55));
+}
+.sun-handle.dragging {
+  cursor: grabbing;
+}
+.sun-handle.dragging .sun-disc {
+  filter: drop-shadow(0 0 10px rgba(244, 201, 91, 0.8));
+}
+
+/* ── Readout (nested into the bowl) ── */
+.sun-tracker-readout {
+  margin-top: -62px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+.sun-tracker-time {
+  font-family: 'Switzer', ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 28px;
+  line-height: 1.1;
+  color: #2c2e32;
+  font-variant-numeric: tabular-nums; /* clock digits don't jitter as time changes */
+  letter-spacing: -0.01em;
+}
+.sun-tracker-date {
+  margin-top: 1px;
+  font-family: 'Switzer', ui-sans-serif, system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  color: #919191;
+}
+
+/* ── Season pill ── */
+.sun-tracker-season {
+  margin-top: 12px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-family: 'Switzer', ui-sans-serif, system-ui, sans-serif;
+  font-weight: 500;
+  font-size: 12px;
+  white-space: nowrap;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.sun-tracker-season.summer {
+  background: #ffd84b;
+  color: #9c781e;
+}
+.sun-tracker-season.winter {
+  background: #e5edf2;
+  color: #606677;
+}
+.sun-tracker-season.mid {
+  background: #e9e6dd;
+  color: #645e4c;
+}
