@@ -199,6 +199,10 @@ export class ShadowLayer implements CustomLayerInterface {
     const canvas = this.map.getCanvas();
     this.renderer.setViewport(0, 0, canvas.width, canvas.height);
 
+    // Keep the on-map compass's cardinal labels facing the camera (manual billboarding — the
+    // bare custom-layer camera can't drive Three's Sprite billboarding).
+    this.compass?.faceCamera((this.map.getBearing() * Math.PI) / 180, (this.map.getPitch() * Math.PI) / 180);
+
     this.renderer.resetState();
     this.renderer.render(this.scene, this.camera);
   }

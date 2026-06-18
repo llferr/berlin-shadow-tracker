@@ -5,49 +5,56 @@ import { sunDirection, type SunPosition } from './sun';
 // On-map 3D sun compass — a horizontal ring laid on the ground at the user's look-at
 // point, the sun rendered at its true 3D direction (azimuth + altitude) scaled to the
 // ring's radius, and the day's solar arc drawn as a polyline traversing the dome.
-// Sits in the Three.js scene so it has correct perspective with the buildings.
+// Everything draws with depthTest off + a high renderOrder so the dial OVERLAYS the
+// buildings (tall buildings never hide it).
 
 const LAT = 52.5163;
 const LNG = 13.3777;
 const RADIUS = 90; // metres — large enough to be readable at z16+, still fits a city block
 
 // Amber/golden accents pulled from the HUD control so the on-map dial reads as the same family.
-const RING_COLOR = 0xE5A048; // saturated amber — the fixed reference circle
-const TRAJECTORY_COLOR = 0xF6BC6E; // lighter amber — the day's sun path
-const SUN_COLOR = 0xFFD84B; // golden — same as the control's sun icon
+const RING_COLOR = 0xe5a048; // saturated amber — the fixed reference circle
+const TRAJECTORY_COLOR = 0xf6bc6e; // lighter amber — the day's sun path
+const SUN_COLOR = 0xffd84b; // golden — same as the control's sun icon
 
-const NS = 'http://www.w3.org/2000/svg';
-void NS;
-
-function makeLabelSprite(text: string): THREE.Sprite {
+// Cardinal label as a textured plane (not a Sprite). The custom-layer camera bakes the view
+// into the projection matrix and has no view matrix of its own, so Three's Sprite billboarding
+// renders flat on the ground and vanishes at pitch — we orient these planes manually instead
+// (see faceCamera). The plane is double-sided so it shows whichever way it ends up facing.
+function makeLabel(text: string): THREE.Mesh {
   const canvas = document.createElement('canvas');
   canvas.width = 128;
   canvas.height = 128;
   const ctx = canvas.getContext('2d')!;
-  ctx.font = 'bold 80px ui-sans-serif, system-ui, -apple-system';
+  // The camera-facing label basis is a reflection in this scene (+Y=south), which flips text
+  // horizontally — pre-mirror the canvas so the glyphs render the right way round.
+  ctx.translate(canvas.width, 0);
+  ctx.scale(-1, 1);
+  ctx.font = 'bold 84px ui-sans-serif, system-ui, -apple-system';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  // Dark outline keeps the letters crisp on the light day basemap; the bright golden fill
-  // (matching the control's sun) keeps them legible on the dark night basemap.
+  // Dark outline keeps the letters crisp on the light day basemap; the bright golden fill keeps
+  // them legible on the dark night basemap.
   ctx.lineJoin = 'round';
-  ctx.lineWidth = 11;
-  ctx.strokeStyle = 'rgba(38, 34, 26, 0.92)';
+  ctx.lineWidth = 12;
+  ctx.strokeStyle = 'rgba(38, 34, 26, 0.95)';
   ctx.strokeText(text, 64, 70);
   ctx.fillStyle = '#FFD84B';
   ctx.fillText(text, 64, 70);
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
-  const material = new THREE.SpriteMaterial({
-    map: texture,
-    transparent: true,
-    depthWrite: false,
-    // Labels always render on top — they're navigation chrome, not geometry, so they
-    // shouldn't be hidden behind tall buildings.
-    depthTest: false,
-  });
-  const sprite = new THREE.Sprite(material);
-  sprite.scale.set(20, 20, 1);
-  return sprite;
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(26, 26),
+    new THREE.MeshBasicMaterial({
+      map: texture,
+      transparent: true,
+      depthTest: false,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    }),
+  );
+  mesh.renderOrder = 20;
+  return mesh;
 }
 
 export type SunCompass = {
@@ -56,6 +63,10 @@ export type SunCompass = {
   /** Resize the whole compass so its ring has the given world radius (metres). Used to keep
    *  the compass a roughly constant on-screen size across zoom levels. */
   setWorldRadius(meters: number): void;
+  /** Orient the cardinal labels to face the camera (manual billboarding). Call each frame with
+   *  the map's bearing + pitch in radians — Three's Sprite billboarding can't work with the
+   *  custom-layer's bare camera, so we build the camera-facing basis ourselves. */
+  faceCamera(bearing: number, pitch: number): void;
   update(sun: SunPosition, date: Date): void;
 };
 
@@ -63,8 +74,6 @@ export function createSunCompass(): SunCompass {
   const group = new THREE.Group();
 
   // Ring on the ground. RingGeometry sits in the XY plane facing +Z — perfect for Z-up.
-  // depthTest on so buildings closer to camera can occlude it (the ring lives on the
-  // ground; tall buildings can pass in front of it).
   const ring = new THREE.Mesh(
     new THREE.RingGeometry(RADIUS - 2.5, RADIUS + 2.5, 128, 1),
     new THREE.MeshBasicMaterial({
@@ -73,6 +82,7 @@ export function createSunCompass(): SunCompass {
       opacity: 1,
       side: THREE.DoubleSide,
       depthWrite: false,
+      depthTest: false,
     }),
   );
   ring.position.z = 0.3;
@@ -87,6 +97,7 @@ export function createSunCompass(): SunCompass {
       opacity: 0.4,
       side: THREE.DoubleSide,
       depthWrite: false,
+      depthTest: false,
     }),
   );
   innerRing.position.z = 0.29;
@@ -101,18 +112,32 @@ export function createSunCompass(): SunCompass {
       transparent: true,
       opacity: 0.9,
       depthWrite: false,
+      depthTest: false,
     }),
   );
   group.add(trajectory);
 
-  // Sun marker — small bright sphere, no shading (emissive look via MeshBasicMaterial).
+  // Sun "ray" — a thin line from the centre of the ring to the sun marker.
+  const ray = new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 0)]),
+    new THREE.LineBasicMaterial({
+      color: SUN_COLOR,
+      transparent: true,
+      opacity: 0.9,
+      depthWrite: false,
+      depthTest: false,
+    }),
+  );
+  group.add(ray);
+
+  // Sun marker — bright golden sphere (no shading, emissive look).
   const sunMarker = new THREE.Mesh(
     new THREE.SphereGeometry(7, 24, 16),
-    new THREE.MeshBasicMaterial({ color: SUN_COLOR }),
+    new THREE.MeshBasicMaterial({ color: SUN_COLOR, transparent: true, depthTest: false, depthWrite: false }),
   );
   group.add(sunMarker);
 
-  // Subtle halo sprite behind the sun for the glow effect.
+  // Soft halo sprite behind the sun for the glow effect.
   const haloCanvas = document.createElement('canvas');
   haloCanvas.width = haloCanvas.height = 128;
   const haloCtx = haloCanvas.getContext('2d')!;
@@ -129,43 +154,42 @@ export function createSunCompass(): SunCompass {
       map: haloTexture,
       transparent: true,
       depthWrite: false,
+      depthTest: false,
       blending: THREE.AdditiveBlending,
     }),
   );
   halo.scale.set(34, 34, 1);
   group.add(halo);
 
-  // Sun "ray" — a thin glowing line from the centre of the ring to the sun marker, so the
-  // user can read the direction at a glance even when the sun marker is close to the rim.
-  const rayGeometry = new THREE.BufferGeometry().setFromPoints([
-    new THREE.Vector3(0, 0, 0),
-    new THREE.Vector3(0, 0, 0),
-  ]);
-  const ray = new THREE.Line(
-    rayGeometry,
-    new THREE.LineBasicMaterial({
-      color: SUN_COLOR,
-      transparent: true,
-      opacity: 0.9,
-      depthWrite: false,
-    }),
-  );
-  group.add(ray);
+  // Draw the dial on top of the buildings, in a sensible internal order.
+  ring.renderOrder = 10;
+  innerRing.renderOrder = 10;
+  trajectory.renderOrder = 11;
+  ray.renderOrder = 12;
+  sunMarker.renderOrder = 13;
+  halo.renderOrder = 14;
 
-  // Cardinal labels (N / E / S / W) — billboarded so they're always face-on regardless
-  // of map bearing/pitch. Scene convention: +X=east, +Y=south, +Z=up.
-  const labels: [string, number, number][] = [
-    ['N', 0, -RADIUS - 12],
-    ['E', RADIUS + 12, 0],
-    ['S', 0, RADIUS + 12],
-    ['W', -RADIUS - 12, 0],
+  // Cardinal labels (N / E / S / W). Scene convention: +X=east, +Y=south, +Z=up.
+  const labels: THREE.Mesh[] = [];
+  const labelDefs: [string, number, number][] = [
+    ['N', 0, -RADIUS - 13],
+    ['E', RADIUS + 13, 0],
+    ['S', 0, RADIUS + 13],
+    ['W', -RADIUS - 13, 0],
   ];
-  for (const [text, x, y] of labels) {
-    const sprite = makeLabelSprite(text);
-    sprite.position.set(x, y, 2);
-    sprite.renderOrder = 11;
-    group.add(sprite);
+  for (const [text, x, y] of labelDefs) {
+    const lbl = makeLabel(text);
+    lbl.position.set(x, y, 6);
+    labels.push(lbl);
+    group.add(lbl);
   }
+
+  // Reused scratch objects for faceCamera so it allocates nothing per frame.
+  const _up = new THREE.Vector3();
+  const _fwd = new THREE.Vector3();
+  const _right = new THREE.Vector3();
+  const _basis = new THREE.Matrix4();
+  const _quat = new THREE.Quaternion();
 
   return {
     group,
@@ -175,9 +199,21 @@ export function createSunCompass(): SunCompass {
     },
 
     setWorldRadius(meters: number) {
-      // Base geometry is built at RADIUS; uniform-scale the group so the ring spans `meters`.
-      // Scaling the group (not the geometry) keeps the sun marker, ray, arc and labels in sync.
       group.scale.setScalar(meters / RADIUS);
+    },
+
+    faceCamera(bearing: number, pitch: number) {
+      const cb = Math.cos(bearing);
+      const sb = Math.sin(bearing);
+      const cp = Math.cos(pitch);
+      const sp = Math.sin(pitch);
+      // Screen-up and camera-ward (toward viewer) vectors in scene space (+X east, +Y south, +Z up).
+      _up.set(sb * cp, -cb * cp, sp);
+      _fwd.set(-sb * sp, cb * sp, cp);
+      _right.crossVectors(_up, _fwd).normalize();
+      _basis.makeBasis(_right, _up, _fwd);
+      _quat.setFromRotationMatrix(_basis);
+      for (const l of labels) l.quaternion.copy(_quat);
     },
 
     update(sun: SunPosition, date: Date) {
@@ -199,11 +235,9 @@ export function createSunCompass(): SunCompass {
       positions.setXYZ(1, sx, sy, sz);
       positions.needsUpdate = true;
 
-      // Trajectory arc for today: sample the sun every 5 minutes, drop samples below
-      // the horizon, build a polyline in scene meters. We rebuild the buffer attribute
-      // fresh each time rather than calling setFromPoints — setFromPoints reuses the
-      // existing attribute and refuses to shrink it, which leaves stale data + warnings
-      // when going from a long summer arc to a short winter arc.
+      // Trajectory arc for today: sample the sun every 5 minutes, drop samples below the
+      // horizon, build a polyline in scene meters. Rebuild the buffer fresh each time so a
+      // shorter winter arc doesn't leave stale data from a longer summer arc.
       const day = new Date(date);
       day.setHours(0, 0, 0, 0);
       const samples: number[] = [];
