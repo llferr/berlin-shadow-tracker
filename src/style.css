@@ -11,6 +11,11 @@ html {
   touch-action: manipulation;
   font-family: var(--font-sans);
   font-size: 16px;
+  /* Kill the mobile tap-highlight box (UA default rgba(0,0,0,0.18)) that flashes over every
+     tappable element on touch — the search field, sun-tracker knobs, and anything else that
+     inherits it. It's an inherited property, so zeroing it here covers the whole product
+     (MapLibre already zeroes it on its own controls). */
+  -webkit-tap-highlight-color: transparent;
 }
 
 html, body {
